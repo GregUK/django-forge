@@ -98,7 +98,7 @@ class Command(BaseCommand):
         self.modules_api = ForgeAPI('modules', client=self.client)
 
         for mod in self.modules_api:
-            if self.supported_only and mod['supported'] is False:
+            if self.supported_only and getattr(mod, 'supported', False) is False:
                 #Skip unsupported modules where the option is set
                 continue
 
