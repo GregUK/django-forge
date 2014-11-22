@@ -5,6 +5,7 @@ from .models import Author, Module, Release
 
 class ReleaseAdmin(admin.ModelAdmin):
     list_display = ('module', 'version')
+    list_filter = ('supported',)
     search_fields = ('version',
                      'module__name',
                      'module__author__name',
@@ -19,6 +20,7 @@ class ReleaseInline(admin.TabularInline):
 
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('author', 'name')
+    list_filter = ('supported',)
     search_fields = ('name', 'author__name', 'tags', 'desc')
 
     inlines = [
@@ -33,7 +35,6 @@ class ModuleInline(admin.TabularInline):
 
 class AuthorAdmin(admin.ModelAdmin):
     search_fields = ('name',)
-
     inlines = [
         ModuleInline,
     ]

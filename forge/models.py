@@ -5,11 +5,11 @@ import tarfile
 import warnings
 
 from django.db import models
+from django.db.models.signals import pre_delete
 from semantic_version.django_fields import VersionField
 
 from .constants import MODULE_REGEX
-from .storage import ForgeStorage
-
+from .storage import ForgeStorage, file_cleanup
 
 class AuthorManager(models.Manager):
     def get_by_natural_key(self, name):
@@ -66,6 +66,7 @@ class Module(models.Model):
     name = models.CharField(max_length=128, db_index=True)
     desc = models.TextField(db_index=True, blank=True)
     tags = models.TextField(db_index=True, blank=True)
+    supported = models.BooleanField(db_index=True, default=False)
 
     objects = ModuleManager()
 
@@ -157,6 +158,7 @@ class Release(models.Model):
     version = VersionField(db_index=True)
     tarball = models.FileField(upload_to=tarball_upload,
                                storage=ForgeStorage())
+    supported = models.BooleanField(db_index=True, default=False)
 
     class Meta:
         unique_together = ('module', 'version')
@@ -215,3 +217,5 @@ class Release(models.Model):
             'tags': self.module.tag_list,
             'version': str(self.version),
         }
+
+pre_delete.connect(file_cleanup, sender=Release)

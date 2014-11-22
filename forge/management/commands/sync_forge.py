@@ -48,6 +48,13 @@ class Command(BaseCommand):
             type='float',
             help=('Time (in seconds) to wait between API requests.'),
         ),
+        make_option(
+            '-s', '--supported_only',
+            action='store_true',
+            dest='supported_only',
+            default=False,
+            help=('Download only supported modules'),
+        ),
     )
 
     def handle(self, *args, **options):
@@ -58,6 +65,9 @@ class Command(BaseCommand):
 
         self.client = ForgeClient(api_url=options['api_url'],
                                   throttle=options['throttle'])
+
+        if options['supported_only']:
+            self.supported_only = bool(options['supported_only'])
 
         # Sync authors first, then modules, and finally create releases
         # after downloading the module tarballs.
@@ -88,10 +98,17 @@ class Command(BaseCommand):
         self.modules_api = ForgeAPI('modules', client=self.client)
 
         for mod in self.modules_api:
+            if self.supported_only and mod['supported'] is False:
+                #Skip unsupported modules where the option is set
+                continue
+
             module, created = Module.objects.get_or_create(
                 author=Author.objects.get_by_natural_key(mod['owner']['username']),
-                name=mod['name']
+                name=mod['name'],
+                supported=mod['supported']
             )
+
+
             if created:
                 msg = 'Created Module: %s' % module
                 self.log(msg)
@@ -146,6 +163,10 @@ class Command(BaseCommand):
             )
 
             for rel in releases_api:
+                if self.supported_only and rel['supported'] is False:
+                    #Skip unsupported modules where the option is set
+                    continue
+
                 tarball = os.path.basename(rel['file_uri'])
 
                 # TODO: Change to v3 compatible file structure, this is using the
@@ -190,7 +211,10 @@ class Command(BaseCommand):
                 # Creating Release now download is completed.
                 try:
                     release, created = Release.objects.get_or_create(
-                        module=module, version=rel['version'], tarball=upload_to
+                        module=module,
+                        version=rel['version'],
+                        tarball=upload_to,
+                        supported=rel['supported']
                     )
                     if created:
                         self.log('Created Release: %s' % release)
