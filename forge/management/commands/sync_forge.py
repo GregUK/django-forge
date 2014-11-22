@@ -66,14 +66,13 @@ class Command(BaseCommand):
         self.client = ForgeClient(api_url=options['api_url'],
                                   throttle=options['throttle'])
 
-        if options['supported_only']:
-            self.supported_only = bool(options['supported_only'])
+        self.supported_only = bool(getattr(options,'supported_only', False))
 
         # Sync authors first, then modules, and finally create releases
         # after downloading the module tarballs.
         self.sync_authors()
-        self.sync_modules()
-        self.sync_releases()
+        self.sync_modules(supported_only=self.supported_only)
+        self.sync_releases(supported_only=self.supported_only)
 
     def log(self, msg, error=False, verbosity_level=1):
         if error:
@@ -94,11 +93,11 @@ class Command(BaseCommand):
                 if created:
                     self.log('Created Author: %s' % author)
 
-    def sync_modules(self):
+    def sync_modules(self, supported_only=False):
         self.modules_api = ForgeAPI('modules', client=self.client)
 
         for mod in self.modules_api:
-            if self.supported_only and getattr(mod, 'supported', False) is False:
+            if supported_only and getattr(mod, 'supported', False) is False:
                 #Skip unsupported modules where the option is set
                 continue
 
@@ -144,7 +143,7 @@ class Command(BaseCommand):
                     self.log('Updated Module: %s' % module)
 
 
-    def sync_releases(self):
+    def sync_releases(self, supported_only=False):
         # Only synchronize releases from authors that have released at least
         # one Puppet module.  Querying the releases by author should make it
         # so that less total API calls are requested of the remote forge.
@@ -163,7 +162,7 @@ class Command(BaseCommand):
             )
 
             for rel in releases_api:
-                if self.supported_only and rel['supported'] is False:
+                if supported_only and rel['supported'] is False:
                     #Skip unsupported modules where the option is set
                     continue
 
