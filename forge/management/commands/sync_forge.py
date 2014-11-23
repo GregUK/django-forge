@@ -202,13 +202,12 @@ class Command(BaseCommand):
                         )
                         continue
 
-                # Get corresponding module.
-                module = Module.objects.get(
-                    author=author, name=rel['module']['name']
-                )
-
                 # Creating Release now download is completed.
                 try:
+                    # Get corresponding module.
+                    module = Module.objects.get(
+                        author=author, name=rel['module']['name']
+                    )
                     release, created = Release.objects.get_or_create(
                         module=module,
                         version=rel['version'],
